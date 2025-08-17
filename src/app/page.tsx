@@ -1,9 +1,11 @@
 'use client';
 
+import { AnimatedHeader } from '@/components/animated-header';
 import { EditingForm, type EditingFormData } from '@/components/editing-form';
 import { GenerationForm, type GenerationFormData } from '@/components/generation-form';
 import { HistoryPanel } from '@/components/history-panel';
 import { ImageOutput } from '@/components/image-output';
+import { ParticleBackground } from '@/components/particle-background';
 import { PasswordDialog } from '@/components/password-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { calculateApiCost, type CostDetails } from '@/lib/cost-utils';
@@ -698,7 +700,14 @@ export default function HomePage() {
     };
 
     return (
-        <main className='flex min-h-screen flex-col items-center bg-black p-4 text-white md:p-8 lg:p-12'>
+        <main className='relative flex min-h-screen flex-col items-center bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 p-4 text-white md:p-8 lg:p-12 overflow-hidden'>
+            {/* Particle background animation */}
+            <ParticleBackground particleCount={30} />
+            {/* Animated background elements */}
+            <div className='absolute inset-0 bg-gradient-to-br from-amber-900/20 via-orange-900/30 to-red-900/20 animate-gradient-shift'></div>
+            <div className='absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-float'></div>
+                <div className='absolute bottom-0 right-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl animate-float' style={{animationDelay: '2s'}}></div>
+            <div className='absolute top-1/2 left-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl animate-float' style={{animationDelay: '4s'}}></div>
             <PasswordDialog
                 isOpen={isPasswordDialogOpen}
                 onOpenChange={setIsPasswordDialogOpen}
@@ -710,11 +719,15 @@ export default function HomePage() {
                         : 'Set a password to use for API requests.'
                 }
             />
-            <div className='w-full max-w-7xl space-y-6'>
+            <div className='relative z-10 animate-fade-in'>
+                <AnimatedHeader />
+            </div>
+            <div className='relative z-10 w-full max-w-7xl space-y-6 animate-fade-in' style={{animationDelay: '0.2s'}}>
                 <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
                     <div className='relative flex h-[70vh] min-h-[600px] flex-col lg:col-span-1'>
                         <div className={mode === 'generate' ? 'block h-full w-full' : 'hidden'}>
-                            <GenerationForm
+                            <div className='animate-slide-up' style={{animationDelay: '0.4s'}}>
+                                <GenerationForm
                                 onSubmit={handleApiCall}
                                 isLoading={isLoading}
                                 currentMode={mode}
@@ -738,10 +751,12 @@ export default function HomePage() {
                                 setBackground={setGenBackground}
                                 moderation={genModeration}
                                 setModeration={setGenModeration}
-                            />
+                                />
+                            </div>
                         </div>
                         <div className={mode === 'edit' ? 'block h-full w-full' : 'hidden'}>
-                            <EditingForm
+                            <div className='animate-slide-up' style={{animationDelay: '0.4s'}}>
+                                <EditingForm
                                 onSubmit={handleApiCall}
                                 isLoading={isLoading || isSendingToEdit}
                                 currentMode={mode}
@@ -776,7 +791,8 @@ export default function HomePage() {
                                 setEditDrawnPoints={setEditDrawnPoints}
                                 editMaskPreviewUrl={editMaskPreviewUrl}
                                 setEditMaskPreviewUrl={setEditMaskPreviewUrl}
-                            />
+                                />
+                            </div>
                         </div>
                     </div>
                     <div className='flex h-[70vh] min-h-[600px] flex-col lg:col-span-1'>
@@ -786,20 +802,22 @@ export default function HomePage() {
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
                         )}
-                        <ImageOutput
-                            imageBatch={latestImageBatch}
-                            viewMode={imageOutputView}
-                            onViewChange={setImageOutputView}
-                            altText='Generated image output'
-                            isLoading={isLoading || isSendingToEdit}
-                            onSendToEdit={handleSendToEdit}
-                            currentMode={mode}
-                            baseImagePreviewUrl={editSourceImagePreviewUrls[0] || null}
-                        />
+                        <div className='animate-slide-up' style={{animationDelay: '0.5s'}}>
+                            <ImageOutput
+                                imageBatch={latestImageBatch}
+                                viewMode={imageOutputView}
+                                onViewChange={setImageOutputView}
+                                altText='Generated image output'
+                                isLoading={isLoading || isSendingToEdit}
+                                onSendToEdit={handleSendToEdit}
+                                currentMode={mode}
+                                baseImagePreviewUrl={editSourceImagePreviewUrls[0] || null}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className='min-h-[450px]'>
+                <div className='min-h-[450px] animate-fade-in' style={{animationDelay: '0.6s'}}>
                     <HistoryPanel
                         history={history}
                         onSelectImage={handleHistorySelect}

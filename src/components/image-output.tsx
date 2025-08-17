@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Loader2, Send, Grid } from 'lucide-react';
+import { LoadingSpinner, ImageSkeleton, LoadingText } from '@/components/ui/loading';
+import { Send, Grid } from 'lucide-react';
 import Image from 'next/image';
 
 type ImageInfo = {
@@ -64,14 +65,18 @@ export function ImageOutput({
                                 unoptimized
                             />
                             <div className='absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white/80'>
-                                <Loader2 className='mb-2 h-8 w-8 animate-spin' />
-                                <p>Editing image...</p>
+                                <LoadingSpinner variant="glow" size="lg" className="mb-4" />
+                                <LoadingText className="text-white/80">
+                                    Editing image...
+                                </LoadingText>
                             </div>
                         </div>
                     ) : (
-                        <div className='flex flex-col items-center justify-center text-white/60'>
-                            <Loader2 className='mb-2 h-8 w-8 animate-spin' />
-                            <p>Generating image...</p>
+                        <div className='flex flex-col items-center justify-center space-y-6'>
+                            <ImageSkeleton className="w-64 h-64" />
+                            <LoadingText className="text-white/60">
+                                Generating image...
+                            </LoadingText>
                         </div>
                     )
                 ) : imageBatch && imageBatch.length > 0 ? (
@@ -81,7 +86,9 @@ export function ImageOutput({
                             {imageBatch.map((img, index) => (
                                 <div
                                     key={img.filename}
-                                    className='relative aspect-square overflow-hidden rounded border border-white/10'>
+                                    className='relative aspect-square overflow-hidden rounded border border-white/10 animate-float hover:scale-105 transition-all duration-300 cursor-pointer'
+                                    style={{ animationDelay: `${index * 0.2}s` }}
+                                    onClick={() => onViewChange(index)}>
                                     <Image
                                         src={img.path}
                                         alt={`Generated image ${index + 1}`}
@@ -89,19 +96,24 @@ export function ImageOutput({
                                         style={{ objectFit: 'contain' }}
                                         sizes='(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw'
                                         unoptimized
+                                        className='hover:brightness-110 transition-all duration-300'
                                     />
+                                    <div className='absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300'></div>
                                 </div>
                             ))}
                         </div>
                     ) : imageBatch[viewMode] ? (
-                        <Image
-                            src={imageBatch[viewMode].path}
-                            alt={altText}
-                            width={512}
-                            height={512}
-                            className='max-h-full max-w-full object-contain'
-                            unoptimized
-                        />
+                        <div className='relative animate-float hover:scale-105 transition-all duration-500 group'>
+                            <Image
+                                src={imageBatch[viewMode].path}
+                                alt={altText}
+                                width={512}
+                                height={512}
+                                className='max-h-full max-w-full object-contain rounded-lg shadow-2xl group-hover:shadow-orange-500/20 transition-all duration-500'
+                                unoptimized
+                            />
+                            <div className='absolute inset-0 bg-gradient-to-t from-orange-500/10 via-transparent to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg'></div>
+                        </div>
                     ) : (
                         <div className='text-center text-white/40'>
                             <p>Error displaying image.</p>

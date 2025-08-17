@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { LoadingSpinner } from '@/components/ui/loading';
 import {
     Square,
     RectangleHorizontal,
@@ -19,7 +20,6 @@ import {
     Tally1,
     Tally2,
     Tally3,
-    Loader2,
     BrickWall,
     Lock,
     LockOpen
@@ -291,7 +291,7 @@ export function GenerationForm({
                         type='submit'
                         disabled={isLoading || !prompt}
                         className='flex w-full items-center justify-center gap-2 rounded-md bg-white text-black hover:bg-white/90 disabled:bg-white/10 disabled:text-white/40'>
-                        {isLoading && <Loader2 className='h-4 w-4 animate-spin' />}
+                        {isLoading && <LoadingSpinner size="sm" variant="sparkle" />}
                         {isLoading ? 'Generating...' : 'Generate'}
                     </Button>
                 </CardFooter>

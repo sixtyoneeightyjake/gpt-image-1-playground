@@ -19,13 +19,13 @@ import {
     Tally1,
     Tally2,
     Tally3,
-    Loader2,
     X,
     ScanEye,
     UploadCloud,
     Lock,
     LockOpen
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading';
 import Image from 'next/image';
 import * as React from 'react';
 
@@ -736,7 +736,7 @@ export function EditingForm({
                         type='submit'
                         disabled={isLoading || !editPrompt || imageFiles.length === 0}
                         className='flex w-full items-center justify-center gap-2 rounded-md bg-white text-black hover:bg-white/90 disabled:bg-white/10 disabled:text-white/40'>
-                        {isLoading && <Loader2 className='h-4 w-4 animate-spin' />}
+                        {isLoading && <LoadingSpinner size="sm" variant="glow" />}
                         {isLoading ? 'Editing...' : 'Edit Image'}
                     </Button>
                 </CardFooter>
