@@ -7,9 +7,9 @@ import { HistoryPanel } from '@/components/history-panel';
 import { ImageOutput } from '@/components/image-output';
 import { ParticleBackground } from '@/components/particle-background';
 import { PasswordDialog } from '@/components/password-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CustomAlertDialog as AlertDialog } from '@/components/custom-alert-dialog';
 import { calculateApiCost, type CostDetails } from '@/lib/cost-utils';
-import { db, type ImageRecord } from '@/lib/db';
+import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import * as React from 'react';
 
@@ -79,57 +79,62 @@ export default function HomePage() {
     const [isInitialLoad, setIsInitialLoad] = React.useState(true);
     const [blobUrlCache, setBlobUrlCache] = React.useState<Record<string, string>>({});
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
-    const [passwordDialogContext, setPasswordDialogContext] = React.useState<'initial' | 'retry'>('initial');
-    const [lastApiCallArgs, setLastApiCallArgs] = React.useState<[GenerationFormData | EditingFormData] | null>(null);
-    const [skipDeleteConfirmation, setSkipDeleteConfirmation] = React.useState<boolean>(false);
+    const [passwordDialogContext, setPasswordDialogContext] = React.useState<'initial' | 'incorrect' | 'retry'>('initial');
     const [itemToDeleteConfirm, setItemToDeleteConfirm] = React.useState<HistoryMetadata | null>(null);
-    const [dialogCheckboxStateSkipConfirm, setDialogCheckboxStateSkipConfirm] = React.useState<boolean>(false);
+    const [doNotAskBeforeDelete, setDoNotAskBeforeDelete] = React.useState(false);
+    const [skipDeleteConfirmation, setSkipDeleteConfirmation] = React.useState(false);
 
-    const allDbImages = useLiveQuery<ImageRecord[] | undefined>(() => db.images.toArray(), []);
+    const [genPrompt, setGenPrompt] = React.useState('');
+    const [genN, setGenN] = React.useState([1]);
+    const [genSize, setGenSize] = React.useState<GenerationFormData['size']>('1024x1024');
+    const [genQuality, setGenQuality] = React.useState<GenerationFormData['quality']>('auto');
+    const [genOutputFormat, setGenOutputFormat] = React.useState<GenerationFormData['output_format']>('png');
+    const [genBackground, setGenBackground] = React.useState<GenerationFormData['background']>('opaque');
+    const [genModeration, setGenModeration] = React.useState<GenerationFormData['moderation']>('auto');
+    const [genCompression, setGenCompression] = React.useState([80]);
 
-    const [editImageFiles, setEditImageFiles] = React.useState<File[]>([]);
-    const [editSourceImagePreviewUrls, setEditSourceImagePreviewUrls] = React.useState<string[]>([]);
+    // API retry state
+    const [lastApiCallArgs, setLastApiCallArgs] = React.useState<[(GenerationFormData | EditingFormData)] | null>(null);
+
     const [editPrompt, setEditPrompt] = React.useState('');
     const [editN, setEditN] = React.useState([1]);
     const [editSize, setEditSize] = React.useState<EditingFormData['size']>('auto');
     const [editQuality, setEditQuality] = React.useState<EditingFormData['quality']>('auto');
-    const [editBrushSize, setEditBrushSize] = React.useState([20]);
+    const [editBrushSize, setEditBrushSize] = React.useState([40]);
     const [editShowMaskEditor, setEditShowMaskEditor] = React.useState(false);
+
+    const [editDrawnPoints, setEditDrawnPoints] = React.useState<DrawnPoint[]>([]);
+    const [editMaskPreviewUrl, setEditMaskPreviewUrl] = React.useState<string | null>(null);
+
     const [editGeneratedMaskFile, setEditGeneratedMaskFile] = React.useState<File | null>(null);
+
+    const [editImageFiles, setEditImageFiles] = React.useState<File[]>([]);
+    const [editSourceImagePreviewUrls, setEditSourceImagePreviewUrls] = React.useState<string[]>([]);
     const [editIsMaskSaved, setEditIsMaskSaved] = React.useState(false);
     const [editOriginalImageSize, setEditOriginalImageSize] = React.useState<{ width: number; height: number } | null>(
         null
     );
-    const [editDrawnPoints, setEditDrawnPoints] = React.useState<DrawnPoint[]>([]);
-    const [editMaskPreviewUrl, setEditMaskPreviewUrl] = React.useState<string | null>(null);
+    const [dialogCheckboxStateSkipConfirm, setDialogCheckboxStateSkipConfirm] = React.useState(false);
 
-    const [genPrompt, setGenPrompt] = React.useState('');
-    const [genN, setGenN] = React.useState([1]);
-    const [genSize, setGenSize] = React.useState<GenerationFormData['size']>('auto');
-    const [genQuality, setGenQuality] = React.useState<GenerationFormData['quality']>('auto');
-    const [genOutputFormat, setGenOutputFormat] = React.useState<GenerationFormData['output_format']>('png');
-    const [genCompression, setGenCompression] = React.useState([100]);
-    const [genBackground, setGenBackground] = React.useState<GenerationFormData['background']>('auto');
-    const [genModeration, setGenModeration] = React.useState<GenerationFormData['moderation']>('auto');
+    const allDbImages = useLiveQuery(() => db.images.toArray(), []);
 
     const getImageSrc = React.useCallback(
-        (filename: string): string | undefined => {
-            if (blobUrlCache[filename]) {
-                return blobUrlCache[filename];
-            }
+        (filename: string) => {
+            if (!allDbImages) return undefined;
+            const image = allDbImages.find((img) => img.filename === filename);
+            if (!image || !image.blob) return undefined;
 
-            const record = allDbImages?.find((img) => img.filename === filename);
-            if (record?.blob) {
-                const url = URL.createObjectURL(record.blob);
+            const blobUrl = blobUrlCache[filename];
+            if (blobUrl) return blobUrl;
 
-                return url;
-            }
-
-            return undefined;
+            const newBlobUrl = URL.createObjectURL(image.blob);
+            setBlobUrlCache((prev) => ({ ...prev, [filename]: newBlobUrl }));
+            return newBlobUrl;
         },
         [allDbImages, blobUrlCache]
     );
 
+    // Effect for handling client-side password and storage mode initialization
     React.useEffect(() => {
         return () => {
             console.log('Revoking blob URLs:', Object.keys(blobUrlCache).length);
@@ -700,34 +705,39 @@ export default function HomePage() {
     };
 
     return (
-        <main className='relative flex min-h-screen flex-col items-center bg-gradient-to-br from-slate-900 via-orange-900 to-slate-900 p-4 text-white md:p-8 lg:p-12 overflow-hidden'>
-            {/* Particle background animation */}
-            <ParticleBackground particleCount={30} />
-            {/* Animated background elements */}
-            <div className='absolute inset-0 bg-gradient-to-br from-amber-900/20 via-orange-900/30 to-red-900/20 animate-gradient-shift'></div>
-            <div className='absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-float'></div>
-                <div className='absolute bottom-0 right-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl animate-float' style={{animationDelay: '2s'}}></div>
-            <div className='absolute top-1/2 left-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl animate-float' style={{animationDelay: '4s'}}></div>
+        <div className='min-h-screen w-full bg-black text-white'>
             <PasswordDialog
                 isOpen={isPasswordDialogOpen}
                 onOpenChange={setIsPasswordDialogOpen}
                 onSave={handleSavePassword}
-                title={passwordDialogContext === 'retry' ? 'Password Required' : 'Configure Password'}
-                description={
-                    passwordDialogContext === 'retry'
-                        ? 'The server requires a password, or the previous one was incorrect. Please enter it to continue.'
-                        : 'Set a password to use for API requests.'
-                }
+                title={passwordDialogContext === 'initial' ? 'Password Required' : 'Incorrect Password'}
+                description={passwordDialogContext === 'initial' ? 'A password is required by the backend. Please enter it to continue.' : 'The password was incorrect. Please try again.'}
             />
-            <div className='relative z-10 animate-fade-in'>
+            {itemToDeleteConfirm && (
+                <AlertDialog
+                    isOpen={!!itemToDeleteConfirm}
+                    onClose={() => setItemToDeleteConfirm(null)}
+                    onConfirm={handleConfirmDeletion}
+                    title='Delete History Item'
+                    description='Are you sure you want to delete this history item? This action cannot be undone.'
+                    confirmText='Delete'
+                    showCheckbox={true}
+                    checkboxLabel='Skip this confirmation next time'
+                    onCheckboxChange={setDialogCheckboxStateSkipConfirm}
+                />
+            )}
+
+            <header className='relative z-20 flex justify-center border-b border-white/10 px-4 py-6 md:px-6'>
                 <AnimatedHeader />
-            </div>
-            <div className='relative z-10 w-full max-w-7xl space-y-6 animate-fade-in' style={{animationDelay: '0.2s'}}>
-                <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-                    <div className='relative flex h-[70vh] min-h-[600px] flex-col lg:col-span-1'>
-                        <div className={mode === 'generate' ? 'block h-full w-full' : 'hidden'}>
-                            <div className='animate-slide-up' style={{animationDelay: '0.4s'}}>
-                                <GenerationForm
+            </header>
+
+            <ParticleBackground />
+
+            <main className='relative z-10 p-4 md:p-6 lg:p-8'>
+                <div className='grid min-h-[calc(100vh-200px)] grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8'>
+                    <div className='flex flex-col gap-4'>
+                        {mode === 'generate' ? (
+                            <GenerationForm
                                 onSubmit={handleApiCall}
                                 isLoading={isLoading}
                                 currentMode={mode}
@@ -751,12 +761,9 @@ export default function HomePage() {
                                 setBackground={setGenBackground}
                                 moderation={genModeration}
                                 setModeration={setGenModeration}
-                                />
-                            </div>
-                        </div>
-                        <div className={mode === 'edit' ? 'block h-full w-full' : 'hidden'}>
-                            <div className='animate-slide-up' style={{animationDelay: '0.4s'}}>
-                                <EditingForm
+                            />
+                        ) : (
+                            <EditingForm
                                 onSubmit={handleApiCall}
                                 isLoading={isLoading || isSendingToEdit}
                                 currentMode={mode}
@@ -791,47 +798,34 @@ export default function HomePage() {
                                 setEditDrawnPoints={setEditDrawnPoints}
                                 editMaskPreviewUrl={editMaskPreviewUrl}
                                 setEditMaskPreviewUrl={setEditMaskPreviewUrl}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className='flex h-[70vh] min-h-[600px] flex-col lg:col-span-1'>
-                        {error && (
-                            <Alert variant='destructive' className='mb-4 border-red-500/50 bg-red-900/20 text-red-300'>
-                                <AlertTitle className='text-red-200'>Error</AlertTitle>
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-                        <div className='animate-slide-up' style={{animationDelay: '0.5s'}}>
-                            <ImageOutput
-                                imageBatch={latestImageBatch}
-                                viewMode={imageOutputView}
-                                onViewChange={setImageOutputView}
-                                altText='Generated image output'
-                                isLoading={isLoading || isSendingToEdit}
-                                onSendToEdit={handleSendToEdit}
-                                currentMode={mode}
-                                baseImagePreviewUrl={editSourceImagePreviewUrls[0] || null}
                             />
-                        </div>
+                        )}
+                    </div>
+                    <div className='flex h-full flex-col gap-4'>
+                        <ImageOutput
+                            imageBatch={latestImageBatch}
+                            viewMode={imageOutputView}
+                            onViewChange={setImageOutputView}
+                            isLoading={isLoading}
+                            onSendToEdit={handleSendToEdit}
+                            currentMode={mode}
+                            baseImagePreviewUrl={editSourceImagePreviewUrls.length > 0 ? editSourceImagePreviewUrls[0] : null}
+                        />
+                        <HistoryPanel
+                                history={history}
+                                onSelectImage={handleHistorySelect}
+                                onClearHistory={handleClearHistory}
+                                getImageSrc={getImageSrc}
+                                onDeleteItemRequest={handleRequestDeleteItem}
+                                itemPendingDeleteConfirmation={itemToDeleteConfirm}
+                                onConfirmDeletion={handleConfirmDeletion}
+                                onCancelDeletion={handleCancelDeletion}
+                                deletePreferenceDialogValue={doNotAskBeforeDelete}
+                                onDeletePreferenceDialogChange={setDoNotAskBeforeDelete}
+                            />
                     </div>
                 </div>
-
-                <div className='min-h-[450px] animate-fade-in' style={{animationDelay: '0.6s'}}>
-                    <HistoryPanel
-                        history={history}
-                        onSelectImage={handleHistorySelect}
-                        onClearHistory={handleClearHistory}
-                        getImageSrc={getImageSrc}
-                        onDeleteItemRequest={handleRequestDeleteItem}
-                        itemPendingDeleteConfirmation={itemToDeleteConfirm}
-                        onConfirmDeletion={handleConfirmDeletion}
-                        onCancelDeletion={handleCancelDeletion}
-                        deletePreferenceDialogValue={dialogCheckboxStateSkipConfirm}
-                        onDeletePreferenceDialogChange={setDialogCheckboxStateSkipConfirm}
-                    />
-                </div>
-            </div>
-        </main>
+            </main>
+        </div>
     );
 }

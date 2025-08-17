@@ -125,6 +125,7 @@ export function ParticleBackground({ particleCount = 50, className }: ParticleBa
         canvas.height = window.innerHeight;
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
