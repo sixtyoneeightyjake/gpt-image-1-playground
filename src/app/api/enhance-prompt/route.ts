@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Initialize the model
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         // Create the full prompt for enhancement
         const fullPrompt = `${PROMPT_ENHANCER_SYSTEM_PROMPT}\n\nUser's original prompt: "${prompt}"\n\nEnhanced prompt:`;
