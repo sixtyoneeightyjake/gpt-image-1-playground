@@ -801,7 +801,7 @@ export default function HomePage() {
                             />
                         )}
                     </div>
-                    <div className='flex h-full flex-col gap-4'>
+                    <div className='flex flex-col gap-4'>
                         <ImageOutput
                             imageBatch={latestImageBatch}
                             viewMode={imageOutputView}
