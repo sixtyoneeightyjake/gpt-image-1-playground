@@ -18,7 +18,7 @@ const IMAGE_INPUT_COST_PER_TOKEN = 0.00001;
 const IMAGE_OUTPUT_COST_PER_TOKEN = 0.00004;
 
 /**
- * Estimates the cost of a gpt-image-1 API call based on token usage.
+ * Estimates the cost of a ImageMojo API call based on token usage.
  * @param usage - The usage object from the OpenAI API response.
  * @returns CostDetails object or null if usage data is invalid.
  */

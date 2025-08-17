@@ -22,7 +22,8 @@ import {
     Tally3,
     BrickWall,
     Lock,
-    LockOpen
+    LockOpen,
+    Wand2
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -112,10 +113,15 @@ export function GenerationForm({
     moderation,
     setModeration
 }: GenerationFormProps) {
+    const [isEnhancing, setIsEnhancing] = React.useState(false);
     const showCompression = outputFormat === 'jpeg' || outputFormat === 'webp';
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (isPasswordRequiredByBackend && !clientPasswordHash) {
+            onOpenPasswordDialog();
+            return;
+        }
         const formData: GenerationFormData = {
             prompt,
             n: n[0],
@@ -131,8 +137,36 @@ export function GenerationForm({
         onSubmit(formData);
     };
 
+    const handleEnhancePrompt = async () => {
+        if (!prompt.trim() || isEnhancing || isLoading) return;
+        
+        setIsEnhancing(true);
+        try {
+            const response = await fetch('/api/enhance-prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt.trim() }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to enhance prompt');
+            }
+
+            const data = await response.json();
+            setPrompt(data.enhancedPrompt);
+        } catch (error) {
+            console.error('Error enhancing prompt:', error);
+            // You could add a toast notification here if you have one
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
+
     return (
-        <Card className='flex h-full w-full flex-col overflow-hidden rounded-lg border border-white/10 bg-black'>
+        <Card className='flex h-full w-full flex-col overflow-hidden rounded-lg border border-white/10 bg-black relative z-10'>
             <CardHeader className='flex items-start justify-between border-b border-white/10 pb-4'>
                 <div>
                     <div className='flex items-center'>
@@ -149,17 +183,34 @@ export function GenerationForm({
                         )}
                     </div>
                     <CardDescription className='mt-1 text-white/60'>
-                        Create a new image from a text prompt using gpt-image-1.
+                        Create a new image from a text prompt using ImageMojo.
                     </CardDescription>
                 </div>
                 <ModeToggle currentMode={currentMode} onModeChange={onModeChange} />
             </CardHeader>
             <form onSubmit={handleSubmit} className='flex h-full flex-1 flex-col overflow-hidden'>
-                <CardContent className='flex-1 space-y-5 overflow-y-auto p-4'>
+                <CardContent className='flex-1 space-y-5 overflow-y-auto p-4 relative z-20'>
                     <div className='space-y-1.5'>
-                        <Label htmlFor='prompt' className='text-white'>
-                            Prompt
-                        </Label>
+                        <div className='flex items-center justify-between'>
+                            <Label htmlFor='prompt' className='text-white'>
+                                Prompt
+                            </Label>
+                            <Button
+                                type='button'
+                                variant='outline'
+                                size='sm'
+                                onClick={handleEnhancePrompt}
+                                disabled={isLoading || isEnhancing || !prompt.trim()}
+                                className='h-7 border-white/20 bg-transparent text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-50'
+                            >
+                                {isEnhancing ? (
+                                    <LoadingSpinner className='h-3 w-3' />
+                                ) : (
+                                    <Wand2 className='h-3 w-3' />
+                                )}
+                                {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                            </Button>
+                        </div>
                         <Textarea
                             id='prompt'
                             placeholder='e.g., A photorealistic cat astronaut floating in space'
@@ -286,7 +337,7 @@ export function GenerationForm({
                         </RadioGroup>
                     </div>
                 </CardContent>
-                <CardFooter className='border-t border-white/10 p-4'>
+                <CardFooter className='border-t border-white/10 p-4 relative z-10'>
                     <Button
                         type='submit'
                         disabled={isLoading || !prompt}

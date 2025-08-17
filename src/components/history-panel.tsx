@@ -121,7 +121,7 @@ export function HistoryPanel({
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className='space-y-1 pt-1 text-xs text-neutral-400'>
-                                    <p>Pricing for gpt-image-1:</p>
+                                    <p>Pricing for ImageMojo:</p>
                                     <ul className='list-disc pl-4'>
                                         <li>Text Input: $5 / 1M tokens</li>
                                         <li>Image Input: $10 / 1M tokens</li>
@@ -270,7 +270,7 @@ export function HistoryPanel({
                                                         </DialogDescription>
                                                     </DialogHeader>
                                                     <div className='space-y-1 pt-1 text-xs text-neutral-400'>
-                                                        <p>Pricing for gpt-image-1:</p>
+                                                        <p>Pricing for ImageMojo:</p>
                                                         <ul className='list-disc pl-4'>
                                                             <li>Text Input: $5 / 1M tokens</li>
                                                             <li>Image Input: $10 / 1M tokens</li>

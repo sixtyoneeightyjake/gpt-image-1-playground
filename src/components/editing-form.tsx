@@ -467,7 +467,7 @@ export function EditingForm({
                             </Button>
                         )}
                     </div>
-                    <CardDescription className='mt-1 text-white/60'>Modify an image using gpt-image-1.</CardDescription>
+                    <CardDescription className='mt-1 text-white/60'>Modify an image using ImageMojo.</CardDescription>
                 </div>
                 <ModeToggle currentMode={currentMode} onModeChange={onModeChange} />
             </CardHeader>
